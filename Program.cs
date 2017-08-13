@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace ExpressionTests
 {
+  // Some comment
   class Program
   {
     static void Main(string[] args)
