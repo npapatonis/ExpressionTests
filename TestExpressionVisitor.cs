@@ -8,11 +8,14 @@ namespace ExpressionTests
   public class TestExpressionVisitor : ExpressionVisitor
   {
     private readonly Dictionary<Expression, Expression> parameterMap;
+    private readonly Dictionary<string, Dictionary<string, string>> memberMap;
 
     public TestExpressionVisitor(
-        Dictionary<Expression, Expression> parameterMap)
+        Dictionary<Expression, Expression> parameterMap,
+        Dictionary<string, Dictionary<string, string>> memberMap)
     {
       this.parameterMap = parameterMap;
+      this.memberMap = memberMap;
     }
 
     public Expression TransformExpression(Expression expression)
@@ -33,13 +36,44 @@ namespace ExpressionTests
     {
       // re-perform any member-binding
       var expr = Visit(node.Expression);
-      if (expr.Type != node.Type)
+      if (expr.Type != node.Expression.Type)
       {
-        MemberInfo newMember = expr.Type.GetMember(node.Member.Name)
-                                   .Single();
-        return Expression.MakeMemberAccess(expr, newMember);
+        // Try to get a public member by the same name
+        MemberInfo memberInfo = expr.Type.GetMember(
+          node.Member.Name,
+          BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
+        ).SingleOrDefault();
+
+        if (memberInfo == null)
+        {
+          // Try to get a non-public member by the same name
+          memberInfo = expr.Type.GetMember(
+            node.Member.Name,
+            BindingFlags.Instance | BindingFlags.NonPublic
+          ).SingleOrDefault();
+        }
+
+        if (memberInfo == null)
+        {
+          memberInfo = expr.Type.GetMember(
+            memberMap[node.Expression.Type.Name][node.Member.Name],
+            BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public
+          ).SingleOrDefault();
+        }
+
+        return Expression.MakeMemberAccess(expr, memberInfo);
       }
       return base.VisitMember(node);
+    }
+
+    protected override Expression VisitUnary(UnaryExpression node)
+    {
+      Expression expr = this.Visit(node.Operand);
+      if (expr != node.Operand)
+      {
+        return expr;
+      }
+      return node;
     }
 
     protected override Expression VisitTypeBinary(TypeBinaryExpression node)

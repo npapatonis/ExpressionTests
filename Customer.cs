@@ -1,8 +1,8 @@
 ﻿namespace ExpressionTests
 {
-  internal class Customer
+  internal abstract class Customer
   {
-    internal Customer()
+    protected Customer()
     {
     }
 
@@ -15,10 +15,14 @@
   internal class DomesticCustomer : Customer
   {
     internal DomesticCustomer() : base() { }
+
+    internal string FedId { get; set; }
   }
 
   internal class InternationalCustomer : Customer
   {
     internal InternationalCustomer() : base() { }
+
+    internal string IMFId { get; set; }
   }
 }

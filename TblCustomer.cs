@@ -7,5 +7,6 @@
     internal bool Preferred { get; set; }
     internal decimal Discount { get; set; }
     internal decimal AnnualSales { get; set; }
+    internal string AltId { get; set; }
   }
 }

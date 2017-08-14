@@ -19,29 +19,32 @@ namespace ExpressionTests
     {
       var customers = new List<TblCustomer>
       {
-        new TblCustomer { Id = 1, Type = 2000, Preferred = true, Discount = 5m, AnnualSales = 10000m },
-        new TblCustomer { Id = 2, Type = 3000, Preferred = true, Discount = 15m, AnnualSales = 25000m },
-        new TblCustomer { Id = 3, Type = 3000, Preferred = false, Discount = 5m, AnnualSales = 5000m },
-        new TblCustomer { Id = 4, Type = 2000, Preferred = false, Discount = 7.5m, AnnualSales = 8000m },
-        new TblCustomer { Id = 5, Type = 4000, Preferred = true, Discount = 10m, AnnualSales = 23000m },
+        new TblCustomer { Id = 1, Type = 4000, Preferred = false, Discount = 5m, AnnualSales = 10000m, AltId = "IMF 101" },
+        new TblCustomer { Id = 2, Type = 3000, Preferred = true, Discount = 15m, AnnualSales = 25000m, AltId = "Fed 101" },
+        new TblCustomer { Id = 3, Type = 3000, Preferred = false, Discount = 5m, AnnualSales = 5000m, AltId = "Fed 102" },
+        new TblCustomer { Id = 4, Type = 3000, Preferred = false, Discount = 7.5m, AnnualSales = 8000m, AltId = "Fed 203" },
+        new TblCustomer { Id = 5, Type = 4000, Preferred = true, Discount = 10m, AnnualSales = 23000m, AltId = "IMF 102" },
+        new TblCustomer { Id = 6, Type = 4000, Preferred = false, Discount = 7.5m, AnnualSales = 8000m, AltId = "IMF 202" },
       };
 
-      //Expression<Func<Customer, bool>> whereExp = (c => hashSet.Contains(c.Type) && c.Preferred == true && c.Discount < 10 && c.AnnualSales > 5000m);
-      Expression<Func<Customer, bool>> whereExp = (c => c is DomesticCustomer);
-      //Expression<Func<Customer, bool>> whereExp = (c => hashSet.Contains(c.Type));
+      //Expression<Func<Customer, bool>> whereExp = (c => c is DomesticCustomer && (c as DomesticCustomer).FedId == "Fed 101");
+      Expression<Func<DomesticCustomer, bool>> whereExp = (c => c.FedId == "Fed 101");
+      //Expression<Func<Customer, bool>> whereExp = (c => c is DomesticCustomer && c.Discount < 10m);
 
       // figure out which types are different in the function-signature
       var fromTypes = whereExp.Type.GetGenericArguments();
       var toTypes = typeof(Func<TblCustomer, bool>).GetGenericArguments();
+
       if (fromTypes.Length != toTypes.Length)
-        throw new NotSupportedException(
-            "Incompatible lambda function-type signatures");
+        throw new NotSupportedException("Incompatible lambda function-type signatures");
+
       Dictionary<Type, Type> typeMap = new Dictionary<Type, Type>();
       for (int i = 0; i < fromTypes.Length; i++)
       {
         if (fromTypes[i] != toTypes[i])
           typeMap[fromTypes[i]] = toTypes[i];
       }
+
       // re-map all parameters that involve different types
       Dictionary<Expression, Expression> parameterMap = new Dictionary<Expression, Expression>();
       ParameterExpression[] newParams = new ParameterExpression[whereExp.Parameters.Count];
@@ -59,12 +62,15 @@ namespace ExpressionTests
         }
       }
 
-      // rebuild the lambda
-      var body = new TestExpressionVisitor(parameterMap).Visit(whereExp.Body);
-      var newExp = Expression.Lambda<Func<TblCustomer, bool>>(body, newParams);
+      Dictionary<string, Dictionary<string, string>> memberMap = new Dictionary<string, Dictionary<string, string>>()
+      {
+        { typeof(DomesticCustomer).Name, new Dictionary<string, string> { { "FedId", "AltId" } } },
+        { typeof(InternationalCustomer).Name, new Dictionary<string, string> { { "IMFId", "AltId" } } }
+      };
 
-      //TestExpressionVisitor expVisitor = new TestExpressionVisitor();
-      //var newExp = (Expression<Func<Customer, bool>>)expVisitor.TransformExpression(whereExp);
+      // rebuild the lambda
+      var body = new TestExpressionVisitor(parameterMap, memberMap).Visit(whereExp.Body);
+      var newExp = Expression.Lambda<Func<TblCustomer, bool>>(body, newParams);
 
       var results = customers.AsQueryable().Where(newExp);
 
@@ -76,39 +82,39 @@ namespace ExpressionTests
       Console.ReadLine();
     }
 
-    private static void Test02()
-    {
-      TypeInfo typeInfo = typeof(Customer).GetTypeInfo();
-      var newExpression = Expression.New(typeInfo);
-      var lambda = Expression.Lambda<Func<object>>(newExpression);
-      var func = lambda.Compile();
-      var c = func();
-    }
+    //private static void Test02()
+    //{
+    //  TypeInfo typeInfo = typeof(Customer).GetTypeInfo();
+    //  var newExpression = Expression.New(typeInfo);
+    //  var lambda = Expression.Lambda<Func<object>>(newExpression);
+    //  var func = lambda.Compile();
+    //  var c = func();
+    //}
 
-    private static void Test01()
-    {
-      var customers = new List<Customer>
-      {
-        new Customer { Id = 1, Preferred = true, Discount = 5m, AnnualSales = 10000m },
-        new Customer { Id = 2, Preferred = true, Discount = 15m, AnnualSales = 25000m },
-        new Customer { Id = 3, Preferred = false, Discount = 5m, AnnualSales = 5000m },
-        new Customer { Id = 4, Preferred = false, Discount = 7.5m, AnnualSales = 8000m },
-        new Customer { Id = 5, Preferred = true, Discount = 10m, AnnualSales = 23000m },
-      };
+    //private static void Test01()
+    //{
+    //  var customers = new List<Customer>
+    //  {
+    //    new Customer { Id = 1, Preferred = true, Discount = 5m, AnnualSales = 10000m },
+    //    new Customer { Id = 2, Preferred = true, Discount = 15m, AnnualSales = 25000m },
+    //    new Customer { Id = 3, Preferred = false, Discount = 5m, AnnualSales = 5000m },
+    //    new Customer { Id = 4, Preferred = false, Discount = 7.5m, AnnualSales = 8000m },
+    //    new Customer { Id = 5, Preferred = true, Discount = 10m, AnnualSales = 23000m },
+    //  };
 
-      Expression<Func<Customer, bool>> whereExp = (c => c.Preferred == true && c.Discount < 10 && c.AnnualSales > 5000m);
-      Expression<Func<Customer, int, CustomerReduced>> selectExp = ((c, i) => new CustomerReduced() { Id = c.Id, AnnualSales = c.AnnualSales });
+    //  Expression<Func<Customer, bool>> whereExp = (c => c.Preferred == true && c.Discount < 10 && c.AnnualSales > 5000m);
+    //  Expression<Func<Customer, int, CustomerReduced>> selectExp = ((c, i) => new CustomerReduced() { Id = c.Id, AnnualSales = c.AnnualSales });
 
-      var results = customers.AsQueryable().Where(whereExp).Select(selectExp);
+    //  var results = customers.AsQueryable().Where(whereExp).Select(selectExp);
 
-      foreach (var result in results)
-      {
-        //Console.WriteLine($"{result.Id} {result.Preferred} {result.Discount} {result.AnnualSales}");
-        Console.WriteLine($"{result.Id} {result.AnnualSales}");
-      }
+    //  foreach (var result in results)
+    //  {
+    //    //Console.WriteLine($"{result.Id} {result.Preferred} {result.Discount} {result.AnnualSales}");
+    //    Console.WriteLine($"{result.Id} {result.AnnualSales}");
+    //  }
 
-      Console.ReadLine();
-    }
+    //  Console.ReadLine();
+    //}
   }
 
   internal class CustomerReduced
