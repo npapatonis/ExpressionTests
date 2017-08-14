@@ -44,28 +44,33 @@ namespace ExpressionTests
 
     protected override Expression VisitTypeBinary(TypeBinaryExpression node)
     {
-      HashSet<int> hashSet = null;
-      if (node.TypeOperand == typeof(InternationalCustomer))
+      var expr = Visit(node.Expression);
+      if (expr.Type != node.Expression.Type)
       {
-        hashSet = new HashSet<int>() { 4000 };
-      }
-      else if (node.TypeOperand == typeof(DomesticCustomer))
-      {
-        hashSet = new HashSet<int>() { 3000 };
-      }
-      else if (node.TypeOperand == typeof(Customer))
-      {
-        hashSet = new HashSet<int>() { 2000, 3000, 4000 };
-      }
+        HashSet<int> hashSet = null;
+        if (node.TypeOperand == typeof(InternationalCustomer))
+        {
+          hashSet = new HashSet<int>() { 4000 };
+        }
+        else if (node.TypeOperand == typeof(DomesticCustomer))
+        {
+          hashSet = new HashSet<int>() { 3000 };
+        }
+        else if (node.TypeOperand == typeof(Customer))
+        {
+          hashSet = new HashSet<int>() { 2000, 3000, 4000 };
+        }
 
-      Expression typePropAccess = Expression.MakeMemberAccess(
-        node.Expression,
-        typeof(Customer).GetProperty("Type", BindingFlags.Instance | BindingFlags.NonPublic));
+        Expression typePropAccess = Expression.MakeMemberAccess(
+          expr,
+          typeof(TblCustomer).GetProperty("Type", BindingFlags.Instance | BindingFlags.NonPublic));
 
-      return Expression.Call(
-        Expression.Constant(hashSet),
-        hashSet.GetType().GetMethod("Contains"),
-        typePropAccess);
+        return Expression.Call(
+          Expression.Constant(hashSet),
+          hashSet.GetType().GetMethod("Contains"),
+          typePropAccess);
+      }
+      return base.VisitTypeBinary(node);
     }
   }
 }

@@ -26,14 +26,45 @@ namespace ExpressionTests
         new TblCustomer { Id = 5, Type = 4000, Preferred = true, Discount = 10m, AnnualSales = 23000m },
       };
 
-      var hashSet = new HashSet<int> { 3000, 4000 };
-
       //Expression<Func<Customer, bool>> whereExp = (c => hashSet.Contains(c.Type) && c.Preferred == true && c.Discount < 10 && c.AnnualSales > 5000m);
       Expression<Func<Customer, bool>> whereExp = (c => c is DomesticCustomer);
       //Expression<Func<Customer, bool>> whereExp = (c => hashSet.Contains(c.Type));
 
-      TestExpressionVisitor expVisitor = new TestExpressionVisitor();
-      var newExp = (Expression<Func<Customer, bool>>)expVisitor.TransformExpression(whereExp);
+      // figure out which types are different in the function-signature
+      var fromTypes = whereExp.Type.GetGenericArguments();
+      var toTypes = typeof(Func<TblCustomer, bool>).GetGenericArguments();
+      if (fromTypes.Length != toTypes.Length)
+        throw new NotSupportedException(
+            "Incompatible lambda function-type signatures");
+      Dictionary<Type, Type> typeMap = new Dictionary<Type, Type>();
+      for (int i = 0; i < fromTypes.Length; i++)
+      {
+        if (fromTypes[i] != toTypes[i])
+          typeMap[fromTypes[i]] = toTypes[i];
+      }
+      // re-map all parameters that involve different types
+      Dictionary<Expression, Expression> parameterMap = new Dictionary<Expression, Expression>();
+      ParameterExpression[] newParams = new ParameterExpression[whereExp.Parameters.Count];
+      for (int i = 0; i < newParams.Length; i++)
+      {
+        Type newType;
+        if (typeMap.TryGetValue(whereExp.Parameters[i].Type, out newType))
+        {
+          parameterMap[whereExp.Parameters[i]] = newParams[i] =
+              Expression.Parameter(newType, whereExp.Parameters[i].Name);
+        }
+        else
+        {
+          newParams[i] = whereExp.Parameters[i];
+        }
+      }
+
+      // rebuild the lambda
+      var body = new TestExpressionVisitor(parameterMap).Visit(whereExp.Body);
+      var newExp = Expression.Lambda<Func<TblCustomer, bool>>(body, newParams);
+
+      //TestExpressionVisitor expVisitor = new TestExpressionVisitor();
+      //var newExp = (Expression<Func<Customer, bool>>)expVisitor.TransformExpression(whereExp);
 
       var results = customers.AsQueryable().Where(newExp);
 
