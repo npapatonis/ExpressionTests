@@ -1,12 +1,13 @@
 ﻿namespace ExpressionTests
 {
-  internal abstract class Customer
+  internal abstract class Customer : IName
   {
     protected Customer()
     {
     }
 
     internal int Id { get; set; }
+    public string Name { get; set; }
     internal bool Preferred { get; set; }
     internal decimal Discount { get; set; }
     internal decimal AnnualSales { get; set; }

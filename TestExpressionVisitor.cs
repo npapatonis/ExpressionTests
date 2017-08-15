@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -26,20 +27,22 @@ namespace ExpressionTests
     protected override Expression VisitParameter(ParameterExpression node)
     {
       // re-map the parameter
-      Expression found;
-      if (!parameterMap.TryGetValue(node, out found))
-        found = base.VisitParameter(node);
-      return found;
+      Expression expression;
+
+      if (!parameterMap.TryGetValue(node, out expression))
+        expression = base.VisitParameter(node);
+
+      return expression;
     }
 
     protected override Expression VisitMember(MemberExpression node)
     {
       // re-perform any member-binding
-      var expr = Visit(node.Expression);
-      if (expr.Type != node.Expression.Type)
+      var expression = Visit(node.Expression);
+      if (expression.Type != node.Expression.Type)
       {
         // Try to get a public member by the same name
-        MemberInfo memberInfo = expr.Type.GetMember(
+        MemberInfo memberInfo = expression.Type.GetMember(
           node.Member.Name,
           BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
         ).SingleOrDefault();
@@ -47,39 +50,65 @@ namespace ExpressionTests
         if (memberInfo == null)
         {
           // Try to get a non-public member by the same name
-          memberInfo = expr.Type.GetMember(
+          memberInfo = expression.Type.GetMember(
             node.Member.Name,
             BindingFlags.Instance | BindingFlags.NonPublic
           ).SingleOrDefault();
         }
 
+        Func<string, string, MemberInfo> lookupMemberInfo = (sourceTypeName, sourceMemberName) =>
+        {
+          Dictionary<string, string> map;
+          if (memberMap.TryGetValue(sourceTypeName, out map))
+          {
+            string memberName;
+            if (map.TryGetValue(sourceMemberName, out memberName))
+            {
+              return expression.Type.GetMember(
+                memberName,
+                BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public
+              ).SingleOrDefault();
+            }
+          }
+
+          return null;
+        };
+
         if (memberInfo == null)
         {
-          memberInfo = expr.Type.GetMember(
-            memberMap[node.Expression.Type.Name][node.Member.Name],
-            BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public
-          ).SingleOrDefault();
+          memberInfo = lookupMemberInfo(node.Expression.Type.Name, node.Member.Name);
         }
 
-        return Expression.MakeMemberAccess(expr, memberInfo);
+        if (memberInfo == null)
+        {
+          if (node.Expression.Type.GetInterface(nameof(IName)) != null)
+          {
+            memberInfo = lookupMemberInfo(nameof(IName), node.Member.Name);
+          }
+        }
+
+        return Expression.MakeMemberAccess(expression, memberInfo);
       }
       return base.VisitMember(node);
     }
 
     protected override Expression VisitUnary(UnaryExpression node)
     {
-      Expression expr = this.Visit(node.Operand);
-      if (expr != node.Operand)
+      if (node.NodeType == ExpressionType.TypeAs)
       {
-        return expr;
+        Expression expression = this.Visit(node.Operand);
+        if (expression != node.Operand)
+        {
+          return expression;
+        }
       }
       return node;
     }
 
     protected override Expression VisitTypeBinary(TypeBinaryExpression node)
     {
-      var expr = Visit(node.Expression);
-      if (expr.Type != node.Expression.Type)
+      var expression = Visit(node.Expression);
+      if (expression.Type != node.Expression.Type)
       {
         HashSet<int> hashSet = null;
         if (node.TypeOperand == typeof(InternationalCustomer))
@@ -96,7 +125,7 @@ namespace ExpressionTests
         }
 
         Expression typePropAccess = Expression.MakeMemberAccess(
-          expr,
+          expression,
           typeof(TblCustomer).GetProperty("Type", BindingFlags.Instance | BindingFlags.NonPublic));
 
         return Expression.Call(

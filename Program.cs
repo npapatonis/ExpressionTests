@@ -19,16 +19,17 @@ namespace ExpressionTests
     {
       var customers = new List<TblCustomer>
       {
-        new TblCustomer { Id = 1, Type = 4000, Preferred = false, Discount = 5m, AnnualSales = 10000m, AltId = "IMF 101" },
-        new TblCustomer { Id = 2, Type = 3000, Preferred = true, Discount = 15m, AnnualSales = 25000m, AltId = "Fed 101" },
-        new TblCustomer { Id = 3, Type = 3000, Preferred = false, Discount = 5m, AnnualSales = 5000m, AltId = "Fed 102" },
-        new TblCustomer { Id = 4, Type = 3000, Preferred = false, Discount = 7.5m, AnnualSales = 8000m, AltId = "Fed 203" },
-        new TblCustomer { Id = 5, Type = 4000, Preferred = true, Discount = 10m, AnnualSales = 23000m, AltId = "IMF 102" },
-        new TblCustomer { Id = 6, Type = 4000, Preferred = false, Discount = 7.5m, AnnualSales = 8000m, AltId = "IMF 202" },
+        new TblCustomer { Id = 1, Type = 4000, Name0 = "International ABC", Preferred = false, Discount = 5m, AnnualSales = 10000m, AltId = "IMF 101" },
+        new TblCustomer { Id = 2, Type = 3000, Name0 = "Domestic ABC", Preferred = true, Discount = 15m, AnnualSales = 25000m, AltId = "Fed 101" },
+        new TblCustomer { Id = 3, Type = 3000, Name0 = "Domestic DEF", Preferred = false, Discount = 5m, AnnualSales = 5000m, AltId = "Fed 102" },
+        new TblCustomer { Id = 4, Type = 3000, Name0 = "Domestic XYZ", Preferred = false, Discount = 7.5m, AnnualSales = 8000m, AltId = "Fed 203" },
+        new TblCustomer { Id = 5, Type = 4000, Name0 = "International DEF", Preferred = true, Discount = 10m, AnnualSales = 23000m, AltId = "IMF 102" },
+        new TblCustomer { Id = 6, Type = 4000, Name0 = "International XYZ", Preferred = false, Discount = 7.5m, AnnualSales = 8000m, AltId = "IMF 202" },
       };
 
       //Expression<Func<Customer, bool>> whereExp = (c => c is DomesticCustomer && (c as DomesticCustomer).FedId == "Fed 101");
-      Expression<Func<DomesticCustomer, bool>> whereExp = (c => c.FedId == "Fed 101");
+      //Expression<Func<Customer, bool>> whereExp = (c => (c as DomesticCustomer).FedId == "Fed 101");
+      Expression<Func<DomesticCustomer, bool>> whereExp = (c => c.Name.StartsWith("Domestic"));
       //Expression<Func<Customer, bool>> whereExp = (c => c is DomesticCustomer && c.Discount < 10m);
 
       // figure out which types are different in the function-signature
@@ -65,7 +66,8 @@ namespace ExpressionTests
       Dictionary<string, Dictionary<string, string>> memberMap = new Dictionary<string, Dictionary<string, string>>()
       {
         { typeof(DomesticCustomer).Name, new Dictionary<string, string> { { "FedId", "AltId" } } },
-        { typeof(InternationalCustomer).Name, new Dictionary<string, string> { { "IMFId", "AltId" } } }
+        { typeof(InternationalCustomer).Name, new Dictionary<string, string> { { "IMFId", "AltId" } } },
+        { typeof(IName).Name, new Dictionary<string, string> { { "Name", "Name0" } } }
       };
 
       // rebuild the lambda
