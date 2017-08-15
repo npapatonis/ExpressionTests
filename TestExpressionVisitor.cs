@@ -9,11 +9,11 @@ namespace ExpressionTests
   public class TestExpressionVisitor : ExpressionVisitor
   {
     private readonly Dictionary<Expression, Expression> parameterMap;
-    private readonly Dictionary<string, Dictionary<string, string>> memberMap;
+    private readonly Dictionary<string, Tuple<Type, string>> memberMap;
 
     public TestExpressionVisitor(
-        Dictionary<Expression, Expression> parameterMap,
-        Dictionary<string, Dictionary<string, string>> memberMap)
+      Dictionary<Expression, Expression> parameterMap,
+      Dictionary<string, Tuple<Type, string>> memberMap)
     {
       this.parameterMap = parameterMap;
       this.memberMap = memberMap;
@@ -26,9 +26,7 @@ namespace ExpressionTests
 
     protected override Expression VisitParameter(ParameterExpression node)
     {
-      // re-map the parameter
       Expression expression;
-
       if (!parameterMap.TryGetValue(node, out expression))
         expression = base.VisitParameter(node);
 
@@ -41,49 +39,26 @@ namespace ExpressionTests
       var expression = Visit(node.Expression);
       if (expression.Type != node.Expression.Type)
       {
-        // Try to get a public member by the same name
+        // See if new type has public member with the same name
         MemberInfo memberInfo = expression.Type.GetMember(
           node.Member.Name,
-          BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
+          BindingFlags.Instance | BindingFlags.Public
         ).SingleOrDefault();
 
         if (memberInfo == null)
         {
-          // Try to get a non-public member by the same name
-          memberInfo = expression.Type.GetMember(
-            node.Member.Name,
-            BindingFlags.Instance | BindingFlags.NonPublic
-          ).SingleOrDefault();
-        }
-
-        Func<string, string, MemberInfo> lookupMemberInfo = (sourceTypeName, sourceMemberName) =>
-        {
-          Dictionary<string, string> map;
-          if (memberMap.TryGetValue(sourceTypeName, out map))
+          // See if new type is an interface, or implements an interface,
+          // with a mapped member
+          Tuple<Type, string> map;
+          if (memberMap.TryGetValue(node.Member.Name, out map))
           {
-            string memberName;
-            if (map.TryGetValue(sourceMemberName, out memberName))
+            if (node.Expression.Type == map.Item1 || map.Item1.IsAssignableFrom(node.Expression.Type))
             {
-              return expression.Type.GetMember(
-                memberName,
+              memberInfo = expression.Type.GetMember(
+                map.Item2,
                 BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public
               ).SingleOrDefault();
             }
-          }
-
-          return null;
-        };
-
-        if (memberInfo == null)
-        {
-          memberInfo = lookupMemberInfo(node.Expression.Type.Name, node.Member.Name);
-        }
-
-        if (memberInfo == null)
-        {
-          if (node.Expression.Type.GetInterface(nameof(IName)) != null)
-          {
-            memberInfo = lookupMemberInfo(nameof(IName), node.Member.Name);
           }
         }
 
@@ -113,15 +88,15 @@ namespace ExpressionTests
         HashSet<int> hashSet = null;
         if (node.TypeOperand == typeof(InternationalCustomer))
         {
-          hashSet = new HashSet<int>() { 4000 };
+          hashSet = new HashSet<int>() { 300 };
         }
-        else if (node.TypeOperand == typeof(DomesticCustomer))
+        else if (node.TypeOperand == typeof(Zone))
         {
-          hashSet = new HashSet<int>() { 3000 };
+          hashSet = new HashSet<int>() { 200 };
         }
-        else if (node.TypeOperand == typeof(Customer))
+        else if (node.TypeOperand == typeof(Obj))
         {
-          hashSet = new HashSet<int>() { 2000, 3000, 4000 };
+          hashSet = new HashSet<int>() { 100, 200, 300 };
         }
 
         Expression typePropAccess = Expression.MakeMemberAccess(
