@@ -46,10 +46,13 @@
     <Compile Include="DataContracts\CategorizableObjBase.cs" />
     <Compile Include="Customer.cs" />
     <Compile Include="DataContracts\EntityBase.cs" />
+    <Compile Include="DataContracts\Officer.cs" />
+    <Compile Include="DataContracts\Person.cs" />
     <Compile Include="DataContracts\Zone.cs" />
     <Compile Include="ExpressionVisitor.cs" />
     <Compile Include="DataContracts\Interfaces.cs" />
     <Compile Include="DataContracts\Obj.cs" />
+    <Compile Include="MemberMapInfo.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TblCustomer.cs" />

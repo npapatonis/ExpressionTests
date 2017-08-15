@@ -9,11 +9,11 @@ namespace ExpressionTests
   public class TestExpressionVisitor : ExpressionVisitor
   {
     private readonly Dictionary<Expression, Expression> parameterMap;
-    private readonly Dictionary<string, Tuple<Type, string>> memberMap;
+    private readonly Dictionary<string, MemberMapInfo> memberMap;
 
     public TestExpressionVisitor(
       Dictionary<Expression, Expression> parameterMap,
-      Dictionary<string, Tuple<Type, string>> memberMap)
+      Dictionary<string, MemberMapInfo> memberMap)
     {
       this.parameterMap = parameterMap;
       this.memberMap = memberMap;
@@ -49,14 +49,14 @@ namespace ExpressionTests
         {
           // See if new type is an interface, or implements an interface,
           // with a mapped member
-          Tuple<Type, string> map;
-          if (memberMap.TryGetValue(node.Member.Name, out map))
+          MemberMapInfo memberMapInfo;
+          if (memberMap.TryGetValue(node.Member.Name, out memberMapInfo))
           {
-            if (node.Expression.Type == map.Item1 || map.Item1.IsAssignableFrom(node.Expression.Type))
+            if (node.Expression.Type == memberMapInfo.SourceType || memberMapInfo.SourceType.IsAssignableFrom(node.Expression.Type))
             {
               memberInfo = expression.Type.GetMember(
-                map.Item2,
-                BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public
+                memberMapInfo.MappedMemberName,
+                BindingFlags.Instance | BindingFlags.Public
               ).SingleOrDefault();
             }
           }
@@ -69,7 +69,7 @@ namespace ExpressionTests
 
     protected override Expression VisitUnary(UnaryExpression node)
     {
-      if (node.NodeType == ExpressionType.TypeAs)
+      if (node.NodeType == ExpressionType.TypeAs || node.NodeType == ExpressionType.Convert)
       {
         Expression expression = this.Visit(node.Operand);
         if (expression != node.Operand)
@@ -86,9 +86,13 @@ namespace ExpressionTests
       if (expression.Type != node.Expression.Type)
       {
         HashSet<int> hashSet = null;
-        if (node.TypeOperand == typeof(InternationalCustomer))
+        if (node.TypeOperand == typeof(Officer))
         {
-          hashSet = new HashSet<int>() { 300 };
+          hashSet = new HashSet<int>() { 320 };
+        }
+        if (node.TypeOperand == typeof(Person))
+        {
+          hashSet = new HashSet<int>() { 300, 310, 320 };
         }
         else if (node.TypeOperand == typeof(Zone))
         {
@@ -96,12 +100,12 @@ namespace ExpressionTests
         }
         else if (node.TypeOperand == typeof(Obj))
         {
-          hashSet = new HashSet<int>() { 100, 200, 300 };
+          hashSet = new HashSet<int>() { 100, 200, 300, 310, 320 };
         }
 
         Expression typePropAccess = Expression.MakeMemberAccess(
           expression,
-          typeof(TblCustomer).GetProperty("Type", BindingFlags.Instance | BindingFlags.NonPublic));
+          typeof(TblObj).GetProperty("Type", BindingFlags.Instance | BindingFlags.Public));
 
         return Expression.Call(
           Expression.Constant(hashSet),
