@@ -9,15 +9,10 @@ namespace ExpressionTests
   {
     static void Main(string[] args)
     {
-      Test03();
-    }
-
-    private static void Test03()
-    {
       var customers = CreateTestData();
 
-      Expression<Func<Obj, bool>> whereExp = o => (o.Id == "");
-      //Expression<Func<Obj, bool>> whereExp = o => (o is Person && (o as Person).Gender == Gender.Female);
+      //Expression<Func<Obj, bool>> whereExp = o => (o.Id == "");
+      Expression<Func<Obj, bool>> whereExp = o => (o is Person && (o as Person).Gender == Gender.Female);
       //Expression<Func<Obj, bool>> whereExp = (o => (o is Person && (o as Person).AltId0 == "6001"));
       //Expression<Func<Obj, bool>> whereExp = (o => (o as Zone).Name.StartsWith("Pod") || (o is Person && (o as Person).LastName.StartsWith("M")));
       //Expression<Func<Obj, bool>> whereExp = (o => (o as IName).Name.StartsWith("Pod"));
@@ -26,9 +21,9 @@ namespace ExpressionTests
 
 
       // rebuild the lambda
-      var newExp = EntityExpressionVisitor.TransformExpression(whereExp);
+      var newExp = new ObjPredicateTranslator().Translate(whereExp);
 
-      var results = customers.AsQueryable().Where(newExp as Func<TblObj, bool>);
+      var results = customers.AsQueryable().Where(newExp);
 
       foreach (var result in results)
       {
@@ -37,61 +32,6 @@ namespace ExpressionTests
 
       Console.ReadLine();
     }
-
-    private static Dictionary<string, MemberMapInfo[]> CreateMemberMap()
-    {
-      var memberMap = new Dictionary<string, MemberMapInfo[]>()
-      {
-        { "Name", new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "Name0") } },
-        { "Desc", new MemberMapInfo[] { new MemberMapInfo(typeof(IDesc), "Desc0") } },
-        { "CatId", new MemberMapInfo[] { new MemberMapInfo(typeof(ICategorizable), "CatId") } },
-        { "LastName", new MemberMapInfo[] { new MemberMapInfo(typeof(IPerson), "Name0") } },
-        { "FirstName", new MemberMapInfo[] { new MemberMapInfo(typeof(IPerson), "Name1") } },
-        { "MiddleName", new MemberMapInfo[] { new MemberMapInfo(typeof(IPerson), "Name2") } },
-        { "Gender", new MemberMapInfo[] { new MemberMapInfo(typeof(IPerson), "Enum0") } },
-        { "AltId0", new MemberMapInfo[] { new MemberMapInfo(typeof(IAltId), "AltId0") } },
-        { "AltId1", new MemberMapInfo[] { new MemberMapInfo(typeof(IAltId), "AltId1") } }
-      };
-
-      return memberMap;
-    }
-
-    //private static void CreateParameterMap<TFrom, TTo>(
-    //  Expression<Func<TFrom, bool>> whereExp,
-    //  out Dictionary<Expression, Expression> parameterMap,
-    //  out ParameterExpression[] newParams)
-    //{
-    //  // figure out which types are different in the function-signature
-    //  var fromTypes = whereExp.Type.GetGenericArguments();
-    //  var toTypes = typeof(Func<TTo, bool>).GetGenericArguments();
-
-    //  if (fromTypes.Length != toTypes.Length)
-    //    throw new NotSupportedException("Incompatible lambda function-type signatures");
-
-    //  Dictionary<Type, Type> typeMap = new Dictionary<Type, Type>();
-    //  for (int i = 0; i < fromTypes.Length; i++)
-    //  {
-    //    if (fromTypes[i] != toTypes[i])
-    //      typeMap[fromTypes[i]] = toTypes[i];
-    //  }
-
-    //  // re-map all parameters that involve different types
-    //  parameterMap = new Dictionary<Expression, Expression>();
-    //  newParams = new ParameterExpression[whereExp.Parameters.Count];
-    //  for (int i = 0; i < newParams.Length; i++)
-    //  {
-    //    Type newType;
-    //    if (typeMap.TryGetValue(whereExp.Parameters[i].Type, out newType))
-    //    {
-    //      parameterMap[whereExp.Parameters[i]] = newParams[i] =
-    //          Expression.Parameter(newType, whereExp.Parameters[i].Name);
-    //    }
-    //    else
-    //    {
-    //      newParams[i] = whereExp.Parameters[i];
-    //    }
-    //  }
-    //}
 
     private static List<TblObj> CreateTestData()
     {

@@ -23,6 +23,19 @@ namespace ExpressionTests
         { "AltId0", new MemberMapInfo[] { new MemberMapInfo(typeof(IAltId), "AltId0") } },
         { "AltId1", new MemberMapInfo[] { new MemberMapInfo(typeof(IAltId), "AltId1") } }
       };
+
+      MemberTranslators = new Dictionary<string, Func<MemberExpression, Expression, MemberInfo>>()
+      {
+        { "Name", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "Name0") }) },
+        { "Desc", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "Desc0") }) },
+        { "CatId", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "CatId") }) },
+        { "LastName", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "Name0") }) },
+        { "FirstName", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "Name1") }) },
+        { "MiddleName", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "Name2") }) },
+        { "Gender", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "Enum0") }) },
+        { "AltId0", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "AltId0") }) },
+        { "AltId1", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "AltId1") }) }
+      };
     }
   }
 
@@ -30,47 +43,28 @@ namespace ExpressionTests
   {
     private Dictionary<Expression, Expression> ParameterMap { get; set; }
     protected Dictionary<string, MemberMapInfo[]> MemberMap { get; set; }
+    protected Dictionary<string, Func<MemberExpression, Expression, MemberInfo>> MemberTranslators { get; set; }
+
+    protected MemberInfo MemberMapTranslate(Type sourceType, Type translatedType, MemberMapInfo[] memberMapInfos)
+    {
+      foreach (var memberMapInfo in memberMapInfos)
+      {
+        if (sourceType == memberMapInfo.SourceType || memberMapInfo.SourceType.IsAssignableFrom(sourceType))
+        {
+          var memberInfo = translatedType.GetMember(
+            memberMapInfo.MappedMemberName,
+            BindingFlags.Instance | BindingFlags.Public
+          ).SingleOrDefault();
+          if (memberInfo != null) return memberInfo;
+        }
+      }
+
+      return null;
+    }
 
     protected EntityExpressionVisitor(Dictionary<Expression, Expression> parameterMap)
     {
       ParameterMap = parameterMap;
-    }
-
-    public static LambdaExpression TransformExpression(LambdaExpression expression)
-    {
-      Dictionary<Expression, Expression> parameterMap;
-      ParameterExpression[] newParams;
-      CreateParameterMap(expression, out parameterMap, out newParams);
-
-      var visitor = new ObjExpressionVisitor(parameterMap);
-      var body = visitor.Visit(expression.Body);
-
-      return Expression.Lambda(body, newParams);
-    }
-
-    private static void CreateParameterMap(LambdaExpression expression,
-      out Dictionary<Expression, Expression> parameterMap,
-      out ParameterExpression[] newParams)
-    {
-      parameterMap = new Dictionary<Expression, Expression>();
-      newParams = new ParameterExpression[expression.Parameters.Count];
-      for (int i = 0; i < newParams.Length; i++)
-      {
-        if (typeof(Obj).IsAssignableFrom(expression.Parameters[i].Type))
-        {
-          parameterMap[expression.Parameters[i]] = newParams[i] =
-            Expression.Parameter(typeof(TblObj), expression.Parameters[i].Name);
-        }
-        //else if (typeof(Ref).IsAssignableFrom(expression.Parameters[i].Type))
-        //{
-        //  parameterMap[expression.Parameters[i]] = newParams[i] =
-        //    Expression.Parameter(typeof(TblRef), expression.Parameters[i].Name);
-        //}
-        else
-        {
-          newParams[i] = expression.Parameters[i];
-        }
-      }
     }
 
     protected override Expression VisitParameter(ParameterExpression node)
