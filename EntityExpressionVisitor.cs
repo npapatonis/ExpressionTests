@@ -8,6 +8,8 @@ namespace ExpressionTests
 {
   public class ObjExpressionVisitor : EntityExpressionVisitor
   {
+    #region =====[ ctor ]=====================================================================================
+
     public ObjExpressionVisitor(Dictionary<Expression, Expression> parameterMap)
       : base(parameterMap)
     {
@@ -26,24 +28,51 @@ namespace ExpressionTests
 
       MemberTranslators = new Dictionary<string, Func<MemberExpression, Expression, MemberInfo>>()
       {
-        { "Name", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "Name0") }) },
-        { "Desc", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "Desc0") }) },
-        { "CatId", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "CatId") }) },
-        { "LastName", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "Name0") }) },
-        { "FirstName", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "Name1") }) },
-        { "MiddleName", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "Name2") }) },
-        { "Gender", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "Enum0") }) },
-        { "AltId0", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "AltId0") }) },
-        { "AltId1", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, new MemberMapInfo[] { new MemberMapInfo(typeof(IName), "AltId1") }) }
+        { "Name", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, MemberMap[me.Member.Name]) },
+        { "Desc", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, MemberMap[me.Member.Name]) },
+        { "CatId", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, MemberMap[me.Member.Name]) },
+        { "LastName", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, MemberMap[me.Member.Name]) },
+        { "FirstName", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, MemberMap[me.Member.Name]) },
+        { "MiddleName", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, MemberMap[me.Member.Name]) },
+        { "Gender", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, MemberMap[me.Member.Name]) },
+        { "AltId0", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, MemberMap[me.Member.Name]) },
+        { "AltId1", (me, e) => MemberMapTranslate(me.Expression.Type, e.Type, MemberMap[me.Member.Name]) }
       };
     }
+
+    #endregion
+
+    #region =====[ Private Properties ]=======================================================================
+
+    private Dictionary<string, MemberMapInfo[]> MemberMap { get; set; }
+
+    #endregion
   }
 
   public abstract class EntityExpressionVisitor : ExpressionVisitor
   {
+    #region =====[ ctor ]=====================================================================================
+
+    protected EntityExpressionVisitor(Dictionary<Expression, Expression> parameterMap)
+    {
+      ParameterMap = parameterMap;
+    }
+
+    #endregion
+
+    #region =====[ Private Properties ]=======================================================================
+
     private Dictionary<Expression, Expression> ParameterMap { get; set; }
-    protected Dictionary<string, MemberMapInfo[]> MemberMap { get; set; }
+
+    #endregion
+
+    #region =====[ Protected Properties ]=====================================================================
+
     protected Dictionary<string, Func<MemberExpression, Expression, MemberInfo>> MemberTranslators { get; set; }
+
+    #endregion
+
+    #region =====[ Protected Methods ]========================================================================
 
     protected MemberInfo MemberMapTranslate(Type sourceType, Type translatedType, MemberMapInfo[] memberMapInfos)
     {
@@ -55,6 +84,7 @@ namespace ExpressionTests
             memberMapInfo.MappedMemberName,
             BindingFlags.Instance | BindingFlags.Public
           ).SingleOrDefault();
+
           if (memberInfo != null) return memberInfo;
         }
       }
@@ -62,9 +92,34 @@ namespace ExpressionTests
       return null;
     }
 
-    protected EntityExpressionVisitor(Dictionary<Expression, Expression> parameterMap)
+    protected override Expression VisitMember(MemberExpression node)
     {
-      ParameterMap = parameterMap;
+      // re-perform any member-binding
+      var expression = Visit(node.Expression);
+      if (expression.Type != node.Expression.Type)
+      {
+        MemberInfo memberInfo = null;
+
+        // See if there is a member translator function
+        Func<MemberExpression, Expression, MemberInfo> memberTranslator;
+        if (MemberTranslators.TryGetValue(node.Member.Name, out memberTranslator))
+        {
+          memberInfo = memberTranslator(node, expression);
+        }
+
+        if (memberInfo == null)
+        {
+          // No translator, see if new type has public member with the same name
+          memberInfo = expression.Type.GetMember(
+            node.Member.Name,
+            BindingFlags.Instance | BindingFlags.Public
+          ).SingleOrDefault();
+        }
+
+        return Expression.MakeMemberAccess(expression, memberInfo);
+      }
+
+      return base.VisitMember(node);
     }
 
     protected override Expression VisitParameter(ParameterExpression node)
@@ -74,57 +129,6 @@ namespace ExpressionTests
         expression = base.VisitParameter(node);
 
       return expression;
-    }
-
-    protected override Expression VisitMember(MemberExpression node)
-    {
-      // re-perform any member-binding
-      var expression = Visit(node.Expression);
-      if (expression.Type != node.Expression.Type)
-      {
-        // See if new type has public member with the same name
-        MemberInfo memberInfo = expression.Type.GetMember(
-          node.Member.Name,
-          BindingFlags.Instance | BindingFlags.Public
-        ).SingleOrDefault();
-
-        if (memberInfo == null)
-        {
-          // See if new type is an interface, or implements an interface,
-          // with a list of mapping information
-          MemberMapInfo[] memberMapInfos;
-          if (MemberMap.TryGetValue(node.Member.Name, out memberMapInfos))
-          {
-            foreach (var memberMapInfo in memberMapInfos)
-            {
-              if (node.Expression.Type == memberMapInfo.SourceType || memberMapInfo.SourceType.IsAssignableFrom(node.Expression.Type))
-              {
-                memberInfo = expression.Type.GetMember(
-                  memberMapInfo.MappedMemberName,
-                  BindingFlags.Instance | BindingFlags.Public
-                ).SingleOrDefault();
-                if (memberInfo != null) break;
-              }
-            }
-          }
-        }
-
-        return Expression.MakeMemberAccess(expression, memberInfo);
-      }
-      return base.VisitMember(node);
-    }
-
-    protected override Expression VisitUnary(UnaryExpression node)
-    {
-      if (node.NodeType == ExpressionType.TypeAs || node.NodeType == ExpressionType.Convert)
-      {
-        Expression expression = this.Visit(node.Operand);
-        if (expression != node.Operand)
-        {
-          return expression;
-        }
-      }
-      return node;
     }
 
     protected override Expression VisitTypeBinary(TypeBinaryExpression node)
@@ -159,7 +163,24 @@ namespace ExpressionTests
           hashSet.GetType().GetMethod("Contains"),
           typePropAccess);
       }
+
       return base.VisitTypeBinary(node);
     }
+
+    protected override Expression VisitUnary(UnaryExpression node)
+    {
+      if (node.NodeType == ExpressionType.TypeAs || node.NodeType == ExpressionType.Convert)
+      {
+        Expression expression = this.Visit(node.Operand);
+        if (expression != node.Operand)
+        {
+          return expression;
+        }
+      }
+
+      return node;
+    }
+
+    #endregion
   }
 }

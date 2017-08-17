@@ -12,7 +12,7 @@ namespace ExpressionTests
       var customers = CreateTestData();
 
       //Expression<Func<Obj, bool>> whereExp = o => (o.Id == "");
-      Expression<Func<Obj, bool>> whereExp = o => (o is Person && (o as Person).Gender == Gender.Female);
+      //Expression<Func<Obj, bool>> whereExp = o => (o is Person && (o as Person).Gender == Gender.Female);
       //Expression<Func<Obj, bool>> whereExp = (o => (o is Person && (o as Person).AltId0 == "6001"));
       //Expression<Func<Obj, bool>> whereExp = (o => (o as Zone).Name.StartsWith("Pod") || (o is Person && (o as Person).LastName.StartsWith("M")));
       //Expression<Func<Obj, bool>> whereExp = (o => (o as IName).Name.StartsWith("Pod"));

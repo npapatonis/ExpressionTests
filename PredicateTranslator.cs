@@ -7,6 +7,8 @@ namespace ExpressionTests
 {
   public abstract class PredicateTranslator<TEntity, TTblEntity>
   {
+    #region =====[ Protected Methods ]========================================================================
+
     protected Dictionary<Expression, Expression> CreateParameterMap(LambdaExpression expression)
     {
       Dictionary<Expression, Expression> parameterMap;
@@ -23,6 +25,10 @@ namespace ExpressionTests
       return parameterMap;
     }
 
+    #endregion
+
+    #region =====[ Public Methods ]===========================================================================
+
     public Expression<Func<TTblEntity, bool>> Translate(LambdaExpression expression)
     {
       var parameterMap = CreateParameterMap(expression);
@@ -34,5 +40,6 @@ namespace ExpressionTests
       return Expression.Lambda<Func<TTblEntity, bool>>(body, newParams);
     }
 
+    #endregion
   }
 }
