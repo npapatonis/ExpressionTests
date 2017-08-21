@@ -43,8 +43,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DataAccessBase.cs" />
     <Compile Include="DataContracts\CategorizableObjBase.cs" />
     <Compile Include="DataContracts\EntityBase.cs" />
+    <Compile Include="DataContracts\IdNameTypeCatId.cs" />
+    <Compile Include="DataContracts\IdTypeCatId.cs" />
+    <Compile Include="DataContracts\Inmate.cs" />
+    <Compile Include="DataContracts\Media.cs" />
     <Compile Include="DataContracts\Officer.cs" />
     <Compile Include="DataContracts\Person.cs" />
     <Compile Include="DataContracts\Zone.cs" />
@@ -52,12 +57,14 @@
     <Compile Include="DataContracts\Interfaces.cs" />
     <Compile Include="DataContracts\Obj.cs" />
     <Compile Include="MemberMapInfo.cs" />
+    <Compile Include="ObjExpressionVisitor.cs" />
     <Compile Include="ObjPredicateTranslator.cs" />
     <Compile Include="PredicateTranslator.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TblObj.cs" />
     <Compile Include="EntityExpressionVisitor.cs" />
+    <Compile Include="UriTemplateItemId.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

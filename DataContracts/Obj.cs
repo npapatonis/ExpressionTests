@@ -20,5 +20,7 @@ namespace ExpressionTests
     public string ExId { get; set; }
 
     public DateTimeOffset Time { get; set; }
+
+    public IdTypeCatId? ParentId { get; set; }
   }
 }

@@ -62,4 +62,23 @@ namespace ExpressionTests
     Gender Gender { get; set; }
     string Account { get; set; }
   }
+
+  public interface IMedia : IName, IDesc, ICategorizable, IIdentifiableObject
+  {
+    string ClientTag { get; set; }
+  }
+
+  public interface IDbEntity : IDbEntry
+  {
+    int Type { get; }
+  }
+
+  public interface IDbEntry : IDbId<Guid>
+  {
+  }
+
+  public interface IDbId<TId>
+  {
+    TId Id { get; }
+  }
 }
