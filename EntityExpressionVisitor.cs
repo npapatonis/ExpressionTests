@@ -66,12 +66,12 @@ namespace ExpressionTests
       return base.VisitBinary(node);
     }
 
-    private string m_fullMemberName = string.Empty;
+    private Stack<string> m_memberNames = new Stack<string>();
     protected override Expression VisitMember(MemberExpression node)
     {
       if (node.Expression != null)
       {
-        m_fullMemberName = node.Member.Name + (m_fullMemberName.Length > 0 ? "." : "") + m_fullMemberName;
+        m_memberNames.Push(node.Member.Name);
 
         var expression = Visit(node.Expression);
 
@@ -80,10 +80,11 @@ namespace ExpressionTests
         if (expression.Type != node.Expression.Type)
         {
           MemberInfo memberInfo = null;
+          var fullMemberName = string.Join(".", m_memberNames);
 
           // See if there is a member mapping
           MemberMapInfo[] memberMapInfos;
-          if (MemberMap.TryGetValue(m_fullMemberName, out memberMapInfos))
+          if (MemberMap.TryGetValue(fullMemberName, out memberMapInfos))
           {
             foreach (var memberMapInfo in memberMapInfos)
             {
@@ -98,7 +99,7 @@ namespace ExpressionTests
               }
             }
           }
-          m_fullMemberName = string.Empty;
+          m_memberNames.Clear();
 
           if (memberInfo == null)
           {

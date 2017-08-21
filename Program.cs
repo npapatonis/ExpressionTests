@@ -11,8 +11,9 @@ namespace ExpressionTests
     {
       var customers = CreateTestData();
 
+      Expression<Func<Media, bool>> whereExp = m => (m.ParentId.Value.CatId == "Obj?id=a8e02957149444e185185bd3957a860b");
       //Expression<Func<Media, bool>> whereExp = m => (m.ParentId.Value.Id == "Obj?id=a8e02957149444e185185bd3957a860b");
-      Expression<Func<Obj, bool>> whereExp = o => (o.Id == "Obj?id=12532bb3c94d4efba557eafb36f88107");
+      //Expression<Func<Obj, bool>> whereExp = o => (o.Id == "Obj?id=12532bb3c94d4efba557eafb36f88107");
       //Expression<Func<Obj, bool>> whereExp = o => (o is Person && (o as Person).Gender == Gender.Male);
       //Expression<Func<Obj, bool>> whereExp = (o => (o is Person && (o as Person).AltId0 == "6001"));
       //Expression<Func<Obj, bool>> whereExp = (o => (o as Zone).Name.StartsWith("Pod") || (o is Person && (o as Person).LastName.StartsWith("M")));

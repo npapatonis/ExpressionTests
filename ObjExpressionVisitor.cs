@@ -24,8 +24,8 @@ namespace ExpressionTests
         { "Gender", new MemberMapInfo[] { new MemberMapInfo(typeof(IPerson), "Enum0") } },
         { "AltId0", new MemberMapInfo[] { new MemberMapInfo(typeof(IAltId), "AltId0") } },
         { "AltId1", new MemberMapInfo[] { new MemberMapInfo(typeof(IAltId), "AltId1") } },
-
-        { "ParentId.Value.Id", new MemberMapInfo[] { new MemberMapInfo(typeof(IObj), "ParentId") } },
+        { "ParentId.Value.Id", new MemberMapInfo[] { new MemberMapInfo(typeof(IObj), "ParentId") } }
+        { "ParentId.Value.Id", new MemberMapInfo[] { new MemberMapInfo(typeof(IObj), "ParentId") } }
       };
     }
 
