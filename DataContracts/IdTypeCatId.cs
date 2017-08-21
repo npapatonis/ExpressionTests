@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ExpressionTests
+namespace G1T.Dc
 {
   public struct IdTypeCatId : IEquatable<IdTypeCatId>
   {

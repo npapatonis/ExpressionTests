@@ -1,4 +1,4 @@
-﻿namespace ExpressionTests
+﻿namespace G1T.Dc
 {
   public abstract class CategorizableObjBase : Obj, ICategorizable
   {

@@ -53,10 +53,13 @@
     <Compile Include="DataContracts\Officer.cs" />
     <Compile Include="DataContracts\Person.cs" />
     <Compile Include="DataContracts\Zone.cs" />
+    <Compile Include="ModelTypes\DcTypeBase.cs" />
     <Compile Include="ExpressionVisitor.cs" />
     <Compile Include="DataContracts\Interfaces.cs" />
     <Compile Include="DataContracts\Obj.cs" />
     <Compile Include="MemberMapInfo.cs" />
+    <Compile Include="ModelTypes\ModelType.cs" />
+    <Compile Include="ModelTypes\Utils.cs" />
     <Compile Include="ObjExpressionVisitor.cs" />
     <Compile Include="ObjPredicateTranslator.cs" />
     <Compile Include="PredicateTranslator.cs" />

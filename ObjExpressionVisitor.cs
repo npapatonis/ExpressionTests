@@ -1,4 +1,5 @@
-﻿using System;
+﻿using G1T.Dc;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -24,8 +25,9 @@ namespace ExpressionTests
         { "Gender", new MemberMapInfo[] { new MemberMapInfo(typeof(IPerson), "Enum0") } },
         { "AltId0", new MemberMapInfo[] { new MemberMapInfo(typeof(IAltId), "AltId0") } },
         { "AltId1", new MemberMapInfo[] { new MemberMapInfo(typeof(IAltId), "AltId1") } },
-        { "ParentId.Value.Id", new MemberMapInfo[] { new MemberMapInfo(typeof(IObj), "ParentId") } }
-        { "ParentId.Value.Id", new MemberMapInfo[] { new MemberMapInfo(typeof(IObj), "ParentId") } }
+        { "ParentId.Value.Id", new MemberMapInfo[] { new MemberMapInfo(typeof(IObj), "ParentId") } },
+        { "ParentId.Value.Type", new MemberMapInfo[] { new MemberMapInfo(typeof(IObj), "ParentType") } },
+        { "ParentId.Value.CatId", new MemberMapInfo[] { new MemberMapInfo(typeof(IObj), "ParentCatId") } }
       };
     }
 
@@ -35,7 +37,12 @@ namespace ExpressionTests
 
     protected override bool IsIdMember(string memberName)
     {
-      return memberName == nameof(Obj.ParentId);
+      return memberName == nameof(TblObj.ParentId);
+    }
+
+    protected override bool IsTypeMember(string memberName)
+    {
+      return memberName == nameof(TblObj.ParentType);
     }
 
     #endregion

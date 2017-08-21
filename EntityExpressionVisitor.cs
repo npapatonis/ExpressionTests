@@ -1,4 +1,5 @@
-﻿using System;
+﻿using G1T.Dc;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -33,6 +34,7 @@ namespace ExpressionTests
     #region =====[ Protected Methods ]=============================================================================
 
     protected virtual bool IsIdMember(string memberName) { return false; }
+    protected virtual bool IsTypeMember(string memberName) { return false; }
 
     protected override Expression VisitBinary(BinaryExpression node)
     {
@@ -42,24 +44,55 @@ namespace ExpressionTests
       {
         var memberExpression = (leftExpression as MemberExpression);
 
-        if ((memberExpression.Expression.NodeType == ExpressionType.Parameter) &&
-            (memberExpression.Type == typeof(Guid) || memberExpression.Type == typeof(Guid?)) &&
-            (memberExpression.Member.Name == nameof(EntityBase.Id) || IsIdMember(memberExpression.Member.Name)))
+        if (memberExpression.Expression.NodeType == ExpressionType.Parameter)
         {
-          // This is a binary comparison of an Id property to some constant or variable.
-          // Let VisitMember translate the left side (e.g., the o.Id).  Then create a new
-          // expression for the right side that calls DataAccessBase.GetDbId with the string form
-          // of the Id to convert it to a Guid.
-          Expression rightExpression = Expression.Call(
-            typeof(DataAccessBase).GetMethod(nameof(DataAccessBase.GetDbId)),
-            node.Right);
-
-          if (rightExpression.Type != leftExpression.Type)
+          if ((memberExpression.Type == typeof(Guid) || memberExpression.Type == typeof(Guid?)) &&
+              (memberExpression.Member.Name == nameof(EntityBase.Id) || IsIdMember(memberExpression.Member.Name)))
           {
-            rightExpression = Expression.Convert(rightExpression, leftExpression.Type);
-          }
+            // This is a binary comparison of an Id property to some constant or variable.
+            // Create a new expression for the right side that calls DataAccessBase.GetDbId
+            // with the string form of the Id to convert it to a Guid.
+            Expression rightExpression = Expression.Call(
+              typeof(DataAccessBase).GetMethod(nameof(DataAccessBase.GetDbId)),
+              node.Right);
 
-          return Expression.MakeBinary(node.NodeType, leftExpression, rightExpression);
+            if (rightExpression.Type != leftExpression.Type)
+            {
+              rightExpression = Expression.Convert(rightExpression, leftExpression.Type);
+            }
+
+            return Expression.MakeBinary(node.NodeType, leftExpression, rightExpression);
+          }
+          else if ((memberExpression.Type == typeof(int) || memberExpression.Type == typeof(int?)) &&
+              (IsTypeMember(memberExpression.Member.Name)))
+          {
+            // This is a binary comparison of a Type property to some constant or variable.
+            // Create a new expression for the right side that calls HashSet.Contains.
+            HashSet<int> typeDbIds;
+            ModelType.TryGetNotAbstractIncludingDerivedTypeDbIds(new string[] { (node.Right as ConstantExpression).Value.ToString() }, out typeDbIds);
+
+            //Expression typePropAccess = Expression.MakeMemberAccess(
+            //  leftExpression,
+            //  typeof(TDbEntity).GetProperty(nameof(IDbEntity.Type), BindingFlags.Instance | BindingFlags.Public));
+
+            Expression typePropAccess = memberExpression;
+            if (typePropAccess.Type == typeof(int?))
+            {
+              var x = Expression.MakeBinary(ExpressionType.NotEqual, memberExpression, Expression.Constant(null));
+              var y = Expression.Call(
+                Expression.Constant(typeDbIds),
+                typeDbIds.GetType().GetMethod(nameof(HashSet<int>.Contains)),
+                Expression.Convert(typePropAccess, typeof(int)));
+
+              var z = Expression.AndAlso(x, y);
+              return z;
+            }
+
+            return Expression.Call(
+              Expression.Constant(typeDbIds),
+              typeDbIds.GetType().GetMethod(nameof(HashSet<int>.Contains)),
+              typePropAccess);
+          }
         }
       }
 
@@ -131,39 +164,16 @@ namespace ExpressionTests
       var expression = Visit(node.Expression);
       if (expression.Type != node.Expression.Type)
       {
-        HashSet<int> hashSet = null;
-        if (node.TypeOperand == typeof(Person))
-        {
-          hashSet = new HashSet<int>() { 300, 310, 320 };
-        }
-        else if (node.TypeOperand == typeof(Inmate))
-        {
-          hashSet = new HashSet<int>() { 310 };
-        }
-        else if (node.TypeOperand == typeof(Officer))
-        {
-          hashSet = new HashSet<int>() { 320 };
-        }
-        else if (node.TypeOperand == typeof(Zone))
-        {
-          hashSet = new HashSet<int>() { 200 };
-        }
-        else if (node.TypeOperand == typeof(Media))
-        {
-          hashSet = new HashSet<int>() { 400 };
-        }
-        else if (node.TypeOperand == typeof(Obj))
-        {
-          hashSet = new HashSet<int>() { 100, 200, 300, 310, 320, 400 };
-        }
+        HashSet<int> typeDbIds;
+        ModelType.TryGetNotAbstractIncludingDerivedTypeDbIds(new string[] { node.TypeOperand.FullName }, out typeDbIds);
 
         Expression typePropAccess = Expression.MakeMemberAccess(
           expression,
-          typeof(TblObj).GetProperty("Type", BindingFlags.Instance | BindingFlags.Public));
+          typeof(TDbEntity).GetProperty(nameof(IDbEntity.Type), BindingFlags.Instance | BindingFlags.Public));
 
         return Expression.Call(
-          Expression.Constant(hashSet),
-          hashSet.GetType().GetMethod("Contains"),
+          Expression.Constant(typeDbIds),
+          typeDbIds.GetType().GetMethod(nameof(HashSet<int>.Contains)),
           typePropAccess);
       }
 

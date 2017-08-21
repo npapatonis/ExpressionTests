@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ExpressionTests
+namespace G1T.Dc
 {
   public interface IEntity : IIdentifiableObject, ICreatedAndModifiedTime
   {

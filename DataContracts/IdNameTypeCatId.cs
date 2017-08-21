@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace ExpressionTests
+namespace G1T.Dc
 {
   public struct IdNameTypeCatId : IEquatable<IdNameTypeCatId>
   {

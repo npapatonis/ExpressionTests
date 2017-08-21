@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
 
-namespace ExpressionTests
+namespace G1T.Dc
 {
   public interface ISrvTime
   {
@@ -80,5 +82,23 @@ namespace ExpressionTests
   public interface IDbId<TId>
   {
     TId Id { get; }
+  }
+
+  public interface IModelTypeInfo
+  {
+    /// <summary>
+    /// Type Info.
+    /// </summary>
+    TypeInfo TypeInfo { get; }
+
+    /// <summary>
+    /// Type database id.
+    /// </summary>
+    int TypeDbId { get; }
+
+    /// <summary>
+    /// Not Abstract Type DbIds
+    /// </summary>
+    IReadOnlyList<int> NotAbstractTypeDbIds { get; }
   }
 }
