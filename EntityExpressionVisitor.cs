@@ -71,27 +71,26 @@ namespace ExpressionTests
             HashSet<int> typeDbIds;
             ModelType.TryGetNotAbstractIncludingDerivedTypeDbIds(new string[] { (node.Right as ConstantExpression).Value.ToString() }, out typeDbIds);
 
-            //Expression typePropAccess = Expression.MakeMemberAccess(
-            //  leftExpression,
-            //  typeof(TDbEntity).GetProperty(nameof(IDbEntity.Type), BindingFlags.Instance | BindingFlags.Public));
+            bool nullableMember = (memberExpression.Type == typeof(int?));
+            Expression newMemberExpression = memberExpression;
 
-            Expression typePropAccess = memberExpression;
-            if (typePropAccess.Type == typeof(int?))
+            if (nullableMember)
             {
-              var x = Expression.MakeBinary(ExpressionType.NotEqual, memberExpression, Expression.Constant(null));
-              var y = Expression.Call(
-                Expression.Constant(typeDbIds),
-                typeDbIds.GetType().GetMethod(nameof(HashSet<int>.Contains)),
-                Expression.Convert(typePropAccess, typeof(int)));
-
-              var z = Expression.AndAlso(x, y);
-              return z;
+              newMemberExpression = Expression.Convert(newMemberExpression, typeof(int));
             }
 
-            return Expression.Call(
+            Expression typeCheckExpression = Expression.Call(
               Expression.Constant(typeDbIds),
               typeDbIds.GetType().GetMethod(nameof(HashSet<int>.Contains)),
-              typePropAccess);
+              newMemberExpression);
+
+            if (nullableMember)
+            {
+              Expression notNullExpression = Expression.MakeBinary(ExpressionType.NotEqual, memberExpression, Expression.Constant(null));
+              typeCheckExpression = Expression.AndAlso(notNullExpression, typeCheckExpression);
+            }
+
+            return typeCheckExpression;
           }
         }
       }
