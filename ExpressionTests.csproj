@@ -52,6 +52,7 @@
     <Compile Include="DataContracts\Media.cs" />
     <Compile Include="DataContracts\Officer.cs" />
     <Compile Include="DataContracts\Person.cs" />
+    <Compile Include="DataContracts\Ref.cs" />
     <Compile Include="DataContracts\Zone.cs" />
     <Compile Include="ModelTypes\DcTypeBase.cs" />
     <Compile Include="ExpressionVisitor.cs" />
@@ -65,8 +66,11 @@
     <Compile Include="PredicateTranslator.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RefExpressionVisitor.cs" />
+    <Compile Include="RefPredicateTranslator.cs" />
     <Compile Include="TblObj.cs" />
     <Compile Include="EntityExpressionVisitor.cs" />
+    <Compile Include="TblRef.cs" />
     <Compile Include="UriTemplateItemId.cs" />
   </ItemGroup>
   <ItemGroup>

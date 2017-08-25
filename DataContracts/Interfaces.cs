@@ -86,19 +86,19 @@ namespace G1T.Dc
 
   public interface IModelTypeInfo
   {
-    /// <summary>
-    /// Type Info.
-    /// </summary>
     TypeInfo TypeInfo { get; }
 
-    /// <summary>
-    /// Type database id.
-    /// </summary>
     int TypeDbId { get; }
 
-    /// <summary>
-    /// Not Abstract Type DbIds
-    /// </summary>
     IReadOnlyList<int> NotAbstractTypeDbIds { get; }
+  }
+
+  public interface IRef : IEntity
+  {
+    DateTimeOffset Time { get; set; }
+
+    IdTypeCatId LId { get; set; }
+
+    IdTypeCatId RId { get; set; }
   }
 }

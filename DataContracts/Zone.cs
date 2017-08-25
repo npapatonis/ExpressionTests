@@ -2,6 +2,8 @@
 {
   public class Zone : CategorizableObjBase, IZone
   {
+    new public static readonly string TypeName = typeof(Zone).FullName;
+
     public string AltId0 { get; set; }
 
     public string AltId1 { get; set; }

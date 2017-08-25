@@ -4,6 +4,8 @@ namespace G1T.Dc
 {
   public class Person : CategorizableObjBase, IPerson
   {
+    public static readonly new string TypeName = typeof(Person).FullName;
+
     public string Account { get; set; }
 
     public string AltId0 { get; set; }

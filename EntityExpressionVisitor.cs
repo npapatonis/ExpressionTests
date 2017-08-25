@@ -52,45 +52,16 @@ namespace ExpressionTests
             // This is a binary comparison of an Id property to some constant or variable.
             // Create a new expression for the right side that calls DataAccessBase.GetDbId
             // with the string form of the Id to convert it to a Guid.
-            Expression rightExpression = Expression.Call(
-              typeof(DataAccessBase).GetMethod(nameof(DataAccessBase.GetDbId)),
-              node.Right);
 
-            if (rightExpression.Type != leftExpression.Type)
-            {
-              rightExpression = Expression.Convert(rightExpression, leftExpression.Type);
-            }
-
-            return Expression.MakeBinary(node.NodeType, leftExpression, rightExpression);
+            return TranslateIdComparisonExpression(node, leftExpression);
           }
           else if ((memberExpression.Type == typeof(int) || memberExpression.Type == typeof(int?)) &&
               (IsTypeMember(memberExpression.Member.Name)))
           {
             // This is a binary comparison of a Type property to some constant or variable.
             // Create a new expression for the right side that calls HashSet.Contains.
-            HashSet<int> typeDbIds;
-            ModelType.TryGetNotAbstractIncludingDerivedTypeDbIds(new string[] { (node.Right as ConstantExpression).Value.ToString() }, out typeDbIds);
 
-            bool nullableMember = (memberExpression.Type == typeof(int?));
-            Expression newMemberExpression = memberExpression;
-
-            if (nullableMember)
-            {
-              newMemberExpression = Expression.Convert(newMemberExpression, typeof(int));
-            }
-
-            Expression typeCheckExpression = Expression.Call(
-              Expression.Constant(typeDbIds),
-              typeDbIds.GetType().GetMethod(nameof(HashSet<int>.Contains)),
-              newMemberExpression);
-
-            if (nullableMember)
-            {
-              Expression notNullExpression = Expression.MakeBinary(ExpressionType.NotEqual, memberExpression, Expression.Constant(null));
-              typeCheckExpression = Expression.AndAlso(notNullExpression, typeCheckExpression);
-            }
-
-            return typeCheckExpression;
+            return CreateTypeCheckExpression(memberExpression, node.Right);
           }
         }
       }
@@ -163,7 +134,8 @@ namespace ExpressionTests
       var expression = Visit(node.Expression);
       if (expression.Type != node.Expression.Type)
       {
-        HashSet<int> typeDbIds;
+        HashSet<int> typeDbIds = null;
+        Expression<Func<int>> x = () => typeDbIds.Count;
         ModelType.TryGetNotAbstractIncludingDerivedTypeDbIds(new string[] { node.TypeOperand.FullName }, out typeDbIds);
 
         Expression typePropAccess = Expression.MakeMemberAccess(
@@ -190,7 +162,81 @@ namespace ExpressionTests
         }
       }
 
-      return node;
+      return base.VisitUnary(node);
+    }
+
+    #endregion
+
+    #region =====[ Private Methods ]===============================================================================
+
+    private Expression CreateTypeCheckExpression(MemberExpression memberExpression, Expression typeValueExpression)
+    {
+      string typeName;
+      if (typeValueExpression.NodeType == ExpressionType.Constant)
+      {
+        typeName = (typeValueExpression as ConstantExpression).Value.ToString();
+      }
+      else if (typeValueExpression.NodeType == ExpressionType.MemberAccess)
+      {
+        typeName = GetMemberValue((typeValueExpression as MemberExpression)).ToString();
+      }
+      else
+      {
+        throw new NotSupportedException("Type name must be either a string literal or constant class member.");
+      }
+
+      HashSet<int> typeDbIds;
+      ModelType.TryGetNotAbstractIncludingDerivedTypeDbIds(new string[] { typeName }, out typeDbIds);
+
+      bool nullable = IsNullable(memberExpression.Type);
+
+      Expression newMemberExpression = memberExpression;
+
+      if (nullable)
+      {
+        newMemberExpression = Expression.Convert(newMemberExpression, typeof(int));
+      }
+
+      Expression typeCheckExpression = Expression.Call(
+        Expression.Constant(typeDbIds),
+        typeDbIds.GetType().GetMethod(nameof(HashSet<int>.Contains)),
+        newMemberExpression);
+
+      if (nullable)
+      {
+        Expression notNullExpression = Expression.MakeBinary(ExpressionType.NotEqual, memberExpression, Expression.Constant(null));
+        typeCheckExpression = Expression.AndAlso(notNullExpression, typeCheckExpression);
+      }
+
+      return typeCheckExpression;
+    }
+
+    private object GetMemberValue(MemberExpression member)
+    {
+      var objectMember = Expression.Convert(member, typeof(object));
+      var getterLambda = Expression.Lambda<Func<object>>(objectMember);
+      var getter = getterLambda.Compile();
+
+      return getter();
+    }
+
+    private bool IsNullable(Type type)
+    {
+      return Nullable.GetUnderlyingType(type) != null;
+    }
+
+    private Expression TranslateIdComparisonExpression(BinaryExpression node, Expression leftExpression)
+    {
+      Expression rightExpression = Expression.Call(
+        typeof(DataAccessBase).GetMethod(nameof(DataAccessBase.GetDbId)),
+        node.Right);
+
+      if (rightExpression.Type != leftExpression.Type)
+      {
+        rightExpression = Expression.Convert(rightExpression, leftExpression.Type);
+      }
+
+      return Expression.MakeBinary(node.NodeType, leftExpression, rightExpression);
     }
 
     #endregion
